@@ -27,7 +27,7 @@ use crate::term::{SizeInfo, Term};
 use crate::tty;
 use crate::util::{limit, start_daemon};
 use crate::window::Window;
-use crate::clipboard::Clipboard;
+use crate::clipboard::ClipboardType;
 
 /// Byte sequences are sent to a `Notify` in response to some events
 pub trait Notify {
@@ -69,10 +69,10 @@ impl<'a, N: Notify + 'a> input::ActionContext for ActionContext<'a, N> {
         }
     }
 
-    fn copy_selection(&self, clipboard: Clipboard) {
+    fn copy_selection(&mut self, ty: ClipboardType) {
         if let Some(selected) = self.terminal.selection_to_string() {
             if !selected.is_empty() {
-                clipboard.store(selected);
+                self.terminal.clipboard().store(ty, selected);
             }
         }
     }

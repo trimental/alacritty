@@ -38,7 +38,7 @@ use crate::selection::{self, Locations, Selection};
 use crate::term::cell::{Cell, Flags, LineLength};
 use crate::term::color::Rgb;
 use crate::url::{Url, UrlParser};
-use crate::clipboard::Clipboard;
+use crate::clipboard::{Clipboard, ClipboardType};
 
 #[cfg(windows)]
 use crate::tty;
@@ -833,6 +833,9 @@ pub struct Term {
 
     /// Hint that Alacritty should be closed
     should_exit: bool,
+
+    /// Clipboard access coupled to the active window
+    clipboard: Clipboard,
 }
 
 /// Terminal size info
@@ -966,6 +969,7 @@ impl Term {
             auto_scroll: config.scrolling().auto_scroll,
             message_buffer,
             should_exit: false,
+            clipboard: Clipboard::new(None),
         }
     }
 
@@ -1388,6 +1392,10 @@ impl Term {
 
         self.grid.url_highlight = None;
         self.dirty = true;
+    }
+
+    pub fn clipboard(&mut self) -> &mut Clipboard {
+        &mut self.clipboard
     }
 }
 
@@ -1909,7 +1917,7 @@ impl ansi::Handler for Term {
     /// Set the clipboard
     #[inline]
     fn set_clipboard(&mut self, string: &str) {
-        Clipboard::Primary.store(string);
+        self.clipboard.store(ClipboardType::Primary, string);
     }
 
     #[inline]

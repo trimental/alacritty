@@ -13,42 +13,68 @@
 // limitations under the License.
 
 #[cfg(any(target_os = "linux", target_os = "bsd"))]
+use clipboard::wayland_clipboard::WaylandClipboardContext;
+#[cfg(any(target_os = "linux", target_os = "bsd"))]
 use clipboard::x11_clipboard::{X11ClipboardContext, Clipboard as X11SecondaryClipboard};
 use clipboard::{ClipboardProvider, ClipboardContext};
 
+pub struct Clipboard {
+    primary: Box<ClipboardProvider>,
+    secondary: Option<Box<ClipboardProvider>>,
+}
+
+impl Clipboard {
+    #[cfg(not(any(target_os = "linux", target_os = "bsd")))]
+    pub fn new() -> Self {
+        Self {
+            primary: Box::new(ClipboardContext::new().unwrap()),
+            secondary: None,
+        }
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "bsd"))]
+    pub fn new(display: Option<Display>) -> Self {
+        if let Some(display) = display {
+            Self {
+                primary: Box::new(WaylandClipboardContext::new(display)),
+                secondary: None,
+            }
+        } else {
+            Self {
+                primary: Box::new(ClipboardContext::new().unwrap()),
+                secondary: Some(Box::new(X11ClipboardContext::<X11SecondaryClipboard>::new().unwrap())),
+            }
+        }
+    }
+}
+
 #[derive(Debug)]
-pub enum Clipboard {
+pub enum ClipboardType {
     Primary,
     Secondary,
 }
 
 impl Clipboard {
-    pub fn store(&self, text: impl Into<String>) {
-        let clipboard = match self {
-            #[cfg(any(target_os = "linux", target_os = "bsd"))]
-            Clipboard::Secondary => X11ClipboardContext::<X11SecondaryClipboard>::new(),
-            #[cfg(not(any(target_os = "linux", target_os = "bsd")))]
-            Clipboard::Secondary => return,
-            _ => ClipboardProvider::new(),
+    pub fn store(&mut self, ty: ClipboardType, text: impl Into<String>) {
+        let clipboard = match (ty, &mut self.secondary) {
+            (ClipboardType::Secondary, Some(provider)) => provider,
+            (ClipboardType::Secondary, None) => return,
+            _ => &mut self.primary,
         };
-        println!("STORING IN {:?}", self);
 
         clipboard
-            .and_then(|mut clipboard: ClipboardContext| clipboard.set_contents(text.into()))
+            .set_contents(text.into())
             .unwrap_or_else(|err| {
                 warn!("Error storing selection to clipboard. {}", err);
             });
     }
 
-    pub fn load(&self) -> Result<String, Box<std::error::Error>> {
-        let clipboard = match self {
-            #[cfg(any(target_os = "linux", target_os = "bsd"))]
-            Clipboard::Secondary => X11ClipboardContext::<X11SecondaryClipboard>::new(),
-            _ => ClipboardProvider::new(),
+    pub fn load(&mut self, ty: ClipboardType) -> Result<String, Box<std::error::Error>> {
+        let clipboard = match (ty, &mut self.secondary) {
+            (ClipboardType::Secondary, Some(provider)) => provider,
+            _ => &mut self.primary,
         };
-        println!("LOADING FROM {:?}", self);
 
-        clipboard
-            .and_then(|mut clipboard: ClipboardContext| clipboard.get_contents())
+        clipboard.get_contents()
     }
 }
