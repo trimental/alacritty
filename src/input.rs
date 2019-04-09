@@ -23,7 +23,6 @@ use std::mem;
 use std::ops::RangeInclusive;
 use std::time::Instant;
 
-use copypasta::{Buffer as ClipboardBuffer, Clipboard, Load};
 use glutin::{
     ElementState, KeyboardInput, ModifiersState, MouseButton, MouseCursor, MouseScrollDelta,
     TouchPhase,
@@ -41,6 +40,7 @@ use crate::term::{Search, SizeInfo, Term};
 use crate::url::Url;
 use crate::util::fmt::Red;
 use crate::util::start_daemon;
+use crate::clipboard::Clipboard;
 
 pub const FONT_SIZE_STEP: f32 = 0.5;
 
@@ -63,7 +63,7 @@ pub struct Processor<'a, A: 'a> {
 pub trait ActionContext {
     fn write_to_pty<B: Into<Cow<'static, [u8]>>>(&mut self, _: B);
     fn size_info(&self) -> SizeInfo;
-    fn copy_selection(&self, _: ClipboardBuffer);
+    fn copy_selection(&self, _: Clipboard);
     fn clear_selection(&mut self);
     fn update_selection(&mut self, point: Point, side: Side);
     fn simple_selection(&mut self, point: Point, side: Side);
@@ -269,11 +269,11 @@ impl Action {
                 ctx.write_to_pty(s.clone().into_bytes())
             },
             Action::Copy => {
-                ctx.copy_selection(ClipboardBuffer::Primary);
+                ctx.copy_selection(Clipboard::Primary);
             },
             Action::Paste => {
-                Clipboard::new()
-                    .and_then(|clipboard| clipboard.load_primary())
+                Clipboard::Primary
+                    .load()
                     .map(|contents| self.paste(ctx, &contents))
                     .unwrap_or_else(|err| {
                         error!("Error loading data from clipboard: {}", Red(err));
@@ -282,8 +282,8 @@ impl Action {
             Action::PasteSelection => {
                 // Only paste if mouse events are not captured by an application
                 if !mouse_mode {
-                    Clipboard::new()
-                        .and_then(|clipboard| clipboard.load_selection())
+                    Clipboard::Secondary
+                        .load()
                         .map(|contents| self.paste(ctx, &contents))
                         .unwrap_or_else(|err| {
                             error!("Error loading data from clipboard: {}", Red(err));
@@ -935,9 +935,9 @@ impl<'a, A: ActionContext + 'a> Processor<'a, A> {
     /// Copy text selection.
     fn copy_selection(&mut self) {
         if self.save_to_clipboard {
-            self.ctx.copy_selection(ClipboardBuffer::Primary);
+            self.ctx.copy_selection(Clipboard::Primary);
         }
-        self.ctx.copy_selection(ClipboardBuffer::Selection);
+        self.ctx.copy_selection(Clipboard::Secondary);
     }
 }
 
@@ -955,9 +955,9 @@ mod tests {
     use crate::message_bar::MessageBuffer;
     use crate::selection::Selection;
     use crate::term::{SizeInfo, Term, TermMode};
+    use crate::clipboard::Clipboard;
 
     use super::{Action, Binding, Processor};
-    use copypasta::Buffer as ClipboardBuffer;
 
     const KEY: VirtualKeyCode = VirtualKeyCode::Key0;
 
@@ -987,7 +987,7 @@ mod tests {
 
         fn simple_selection(&mut self, _point: Point, _side: Side) {}
 
-        fn copy_selection(&self, _buffer: ClipboardBuffer) {}
+        fn copy_selection(&self, _: Clipboard) {}
 
         fn clear_selection(&mut self) {}
 

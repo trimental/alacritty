@@ -8,7 +8,6 @@ use std::io::Write;
 use std::sync::mpsc;
 use std::time::Instant;
 
-use copypasta::{Buffer as ClipboardBuffer, Clipboard, Load, Store};
 use glutin::dpi::PhysicalSize;
 use glutin::{self, ElementState, Event, ModifiersState, MouseButton};
 use parking_lot::MutexGuard;
@@ -26,9 +25,9 @@ use crate::term::cell::Cell;
 use crate::term::{SizeInfo, Term};
 #[cfg(unix)]
 use crate::tty;
-use crate::util::fmt::Red;
 use crate::util::{limit, start_daemon};
 use crate::window::Window;
+use crate::clipboard::Clipboard;
 
 /// Byte sequences are sent to a `Notify` in response to some events
 pub trait Notify {
@@ -70,14 +69,10 @@ impl<'a, N: Notify + 'a> input::ActionContext for ActionContext<'a, N> {
         }
     }
 
-    fn copy_selection(&self, buffer: ClipboardBuffer) {
+    fn copy_selection(&self, clipboard: Clipboard) {
         if let Some(selected) = self.terminal.selection_to_string() {
             if !selected.is_empty() {
-                Clipboard::new()
-                    .and_then(|mut clipboard| clipboard.store(selected, buffer))
-                    .unwrap_or_else(|err| {
-                        warn!("Error storing selection to clipboard. {}", Red(err));
-                    });
+                clipboard.store(selected);
             }
         }
     }

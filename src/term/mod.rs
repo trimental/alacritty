@@ -21,6 +21,7 @@ use std::{io, mem, ptr};
 use arraydeque::ArrayDeque;
 use glutin::MouseCursor;
 use unicode_width::UnicodeWidthChar;
+use font::{self, Size};
 
 use crate::ansi::{
     self, Attr, CharsetIndex, Color, CursorStyle, Handler, NamedColor, StandardCharset,
@@ -37,8 +38,7 @@ use crate::selection::{self, Locations, Selection};
 use crate::term::cell::{Cell, Flags, LineLength};
 use crate::term::color::Rgb;
 use crate::url::{Url, UrlParser};
-use copypasta::{Clipboard, Load, Store};
-use font::{self, Size};
+use crate::clipboard::Clipboard;
 
 #[cfg(windows)]
 use crate::tty;
@@ -1909,11 +1909,7 @@ impl ansi::Handler for Term {
     /// Set the clipboard
     #[inline]
     fn set_clipboard(&mut self, string: &str) {
-        Clipboard::new().and_then(|mut clipboard| clipboard.store_primary(string)).unwrap_or_else(
-            |err| {
-                warn!("Error storing selection to clipboard: {}", err);
-            },
-        );
+        Clipboard::Primary.store(string);
     }
 
     #[inline]

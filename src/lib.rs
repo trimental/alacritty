@@ -50,6 +50,7 @@ pub mod tty;
 mod url;
 pub mod util;
 pub mod window;
+mod clipboard;
 
 pub use crate::grid::Grid;
 pub use crate::term::Term;
