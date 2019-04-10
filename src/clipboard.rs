@@ -15,8 +15,10 @@
 #[cfg(any(target_os = "linux", target_os = "bsd"))]
 use clipboard::wayland_clipboard::WaylandClipboardContext;
 #[cfg(any(target_os = "linux", target_os = "bsd"))]
-use clipboard::x11_clipboard::{X11ClipboardContext, Clipboard as X11SecondaryClipboard};
-use clipboard::{ClipboardProvider, ClipboardContext};
+use clipboard::x11_clipboard::{Primary as X11SecondaryClipboard, X11ClipboardContext};
+use clipboard::{ClipboardContext, ClipboardProvider};
+
+use crate::display::Display;
 
 pub struct Clipboard {
     primary: Box<ClipboardProvider>,
@@ -24,26 +26,25 @@ pub struct Clipboard {
 }
 
 impl Clipboard {
-    #[cfg(not(any(target_os = "linux", target_os = "bsd")))]
-    pub fn new() -> Self {
+    pub fn new(display: &Display) -> Self {
+        #[cfg(any(target_os = "linux", target_os = "bsd"))]
+        {
+            if let Some(display) = display.get_wayland_display() {
+                return Self {
+                    primary: unsafe {
+                        Box::new(WaylandClipboardContext::new_from_external(display))
+                    },
+                    secondary: None,
+                };
+            }
+        }
+
         Self {
             primary: Box::new(ClipboardContext::new().unwrap()),
+            #[cfg(any(target_os = "linux", target_os = "bsd"))]
+            secondary: Some(Box::new(X11ClipboardContext::<X11SecondaryClipboard>::new().unwrap())),
+            #[cfg(not(any(target_os = "linux", target_os = "bsd")))]
             secondary: None,
-        }
-    }
-
-    #[cfg(any(target_os = "linux", target_os = "bsd"))]
-    pub fn new(display: Option<Display>) -> Self {
-        if let Some(display) = display {
-            Self {
-                primary: Box::new(WaylandClipboardContext::new(display)),
-                secondary: None,
-            }
-        } else {
-            Self {
-                primary: Box::new(ClipboardContext::new().unwrap()),
-                secondary: Some(Box::new(X11ClipboardContext::<X11SecondaryClipboard>::new().unwrap())),
-            }
         }
     }
 }
@@ -62,17 +63,15 @@ impl Clipboard {
             _ => &mut self.primary,
         };
 
-        clipboard
-            .set_contents(text.into())
-            .unwrap_or_else(|err| {
-                warn!("Error storing selection to clipboard. {}", err);
-            });
+        clipboard.set_contents(text.into()).unwrap_or_else(|err| {
+            warn!("Error storing selection to clipboard. {}", err);
+        });
     }
 
     pub fn load(&mut self, ty: ClipboardType) -> Result<String, Box<std::error::Error>> {
         let clipboard = match (ty, &mut self.secondary) {
             (ClipboardType::Secondary, Some(provider)) => provider,
-            _ => &mut self.primary,
+            _ => &mut self.primary
         };
 
         clipboard.get_contents()

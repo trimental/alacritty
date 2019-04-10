@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 use std::convert::From;
+use std::ffi::c_void;
 use std::fmt::Display;
 
 use crate::gl;
 use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 #[cfg(not(any(target_os = "macos", windows)))]
-use glutin::os::unix::EventsLoopExt;
+use glutin::os::unix::{EventsLoopExt, WindowExt};
 #[cfg(windows)]
 use glutin::Icon;
 use glutin::{
@@ -367,6 +368,10 @@ impl Window {
     /// Hide the window
     pub fn hide(&self) {
         self.window().hide();
+    }
+
+    pub fn get_wayland_display(&self) -> Option<*mut c_void> {
+        self.window().get_wayland_display()
     }
 
     fn window(&self) -> &glutin::Window {

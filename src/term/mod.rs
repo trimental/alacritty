@@ -19,14 +19,16 @@ use std::time::{Duration, Instant};
 use std::{io, mem, ptr};
 
 use arraydeque::ArrayDeque;
+use font::{self, Size};
 use glutin::MouseCursor;
 use unicode_width::UnicodeWidthChar;
-use font::{self, Size};
 
 use crate::ansi::{
     self, Attr, CharsetIndex, Color, CursorStyle, Handler, NamedColor, StandardCharset,
 };
+use crate::clipboard::{Clipboard, ClipboardType};
 use crate::config::{Config, VisualBellAnimation};
+use crate::display::Display;
 use crate::grid::{
     BidirectionalIterator, DisplayIter, Grid, GridCell, IndexRegion, Indexed, Scroll,
     ViewportPosition,
@@ -38,7 +40,6 @@ use crate::selection::{self, Locations, Selection};
 use crate::term::cell::{Cell, Flags, LineLength};
 use crate::term::color::Rgb;
 use crate::url::{Url, UrlParser};
-use crate::clipboard::{Clipboard, ClipboardType};
 
 #[cfg(windows)]
 use crate::tty;
@@ -923,7 +924,12 @@ impl Term {
         self.next_mouse_cursor.take()
     }
 
-    pub fn new(config: &Config, size: SizeInfo, message_buffer: MessageBuffer) -> Term {
+    pub fn new(
+        config: &Config,
+        display: &Display,
+        message_buffer: MessageBuffer,
+    ) -> Term {
+        let size = display.size().to_owned();
         let num_cols = size.cols();
         let num_lines = size.lines();
 
@@ -969,7 +975,7 @@ impl Term {
             auto_scroll: config.scrolling().auto_scroll,
             message_buffer,
             should_exit: false,
-            clipboard: Clipboard::new(None),
+            clipboard: Clipboard::new(display),
         }
     }
 

@@ -6,9 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Packaging
+
+- The xclip dependency has been removed
+
 ### Added
 
 - Added ScrollLineUp and ScrollLineDown actions for scrolling line by line
+- Native clipboard support on X11 and Wayland
 
 ### Changed
 
