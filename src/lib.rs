@@ -30,6 +30,7 @@ extern crate objc;
 pub mod macros;
 pub mod ansi;
 pub mod cli;
+pub mod clipboard;
 pub mod config;
 pub mod display;
 pub mod event;
@@ -50,7 +51,6 @@ pub mod tty;
 mod url;
 pub mod util;
 pub mod window;
-mod clipboard;
 
 pub use crate::grid::Grid;
 pub use crate::term::Term;

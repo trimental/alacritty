@@ -14,6 +14,7 @@ use parking_lot::MutexGuard;
 use serde_json as json;
 
 use crate::cli::Options;
+use crate::clipboard::ClipboardType;
 use crate::config::{self, Config};
 use crate::display::OnResize;
 use crate::grid::Scroll;
@@ -27,7 +28,6 @@ use crate::term::{SizeInfo, Term};
 use crate::tty;
 use crate::util::{limit, start_daemon};
 use crate::window::Window;
-use crate::clipboard::ClipboardType;
 
 /// Byte sequences are sent to a `Notify` in response to some events
 pub trait Notify {

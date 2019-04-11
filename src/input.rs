@@ -30,6 +30,7 @@ use glutin::{
 use unicode_width::UnicodeWidthStr;
 
 use crate::ansi::{ClearMode, Handler};
+use crate::clipboard::ClipboardType;
 use crate::config::{self, Key};
 use crate::event::{ClickState, Mouse};
 use crate::grid::Scroll;
@@ -40,7 +41,6 @@ use crate::term::{Search, SizeInfo, Term};
 use crate::url::Url;
 use crate::util::fmt::Red;
 use crate::util::start_daemon;
-use crate::clipboard::ClipboardType;
 
 pub const FONT_SIZE_STEP: f32 = 0.5;
 
@@ -272,8 +272,7 @@ impl Action {
                 ctx.copy_selection(ClipboardType::Primary);
             },
             Action::Paste => {
-                ctx
-                    .terminal_mut()
+                ctx.terminal_mut()
                     .clipboard()
                     .load(ClipboardType::Primary)
                     .map(|contents| self.paste(ctx, &contents))
@@ -284,8 +283,7 @@ impl Action {
             Action::PasteSelection => {
                 // Only paste if mouse events are not captured by an application
                 if !mouse_mode {
-                    ctx
-                        .terminal_mut()
+                    ctx.terminal_mut()
                         .clipboard()
                         .load(ClipboardType::Secondary)
                         .map(|contents| self.paste(ctx, &contents))
@@ -952,6 +950,7 @@ mod tests {
 
     use glutin::{ElementState, Event, ModifiersState, MouseButton, VirtualKeyCode, WindowEvent};
 
+    use crate::clipboard::{Clipboard, ClipboardType};
     use crate::config::{self, ClickHandler, Config};
     use crate::event::{ClickState, Mouse, WindowChanges};
     use crate::grid::Scroll;
@@ -959,7 +958,6 @@ mod tests {
     use crate::message_bar::MessageBuffer;
     use crate::selection::Selection;
     use crate::term::{SizeInfo, Term, TermMode};
-    use crate::clipboard::Clipboard;
 
     use super::{Action, Binding, Processor};
 
@@ -1077,7 +1075,7 @@ mod tests {
                     dpr: 1.0,
                 };
 
-                let mut terminal = Term::new(&config, size, MessageBuffer::new());
+                let mut terminal = Term::new(&config, size, MessageBuffer::new(), Clipboard::new(None));
 
                 let mut mouse = Mouse::default();
                 mouse.click_state = $initial_state;

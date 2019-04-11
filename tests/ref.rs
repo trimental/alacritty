@@ -7,6 +7,7 @@ use std::io::{self, Read};
 use std::path::Path;
 
 use alacritty::ansi;
+use alacritty::clipboard::Clipboard;
 use alacritty::config::Config;
 use alacritty::index::Column;
 use alacritty::message_bar::MessageBuffer;
@@ -92,7 +93,7 @@ fn ref_test(dir: &Path) {
     let mut config: Config = Default::default();
     config.set_history(ref_config.history_size);
 
-    let mut terminal = Term::new(&config, size, MessageBuffer::new());
+    let mut terminal = Term::new(&config, size, MessageBuffer::new(), Clipboard::new(None));
     let mut parser = ansi::Processor::new();
 
     for byte in recording {

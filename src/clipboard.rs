@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::ffi::c_void;
+
 #[cfg(any(target_os = "linux", target_os = "bsd"))]
 use clipboard::wayland_clipboard::WaylandClipboardContext;
 #[cfg(any(target_os = "linux", target_os = "bsd"))]
 use clipboard::x11_clipboard::{Primary as X11SecondaryClipboard, X11ClipboardContext};
 use clipboard::{ClipboardContext, ClipboardProvider};
-
-use crate::display::Display;
 
 pub struct Clipboard {
     primary: Box<ClipboardProvider>,
@@ -26,17 +26,12 @@ pub struct Clipboard {
 }
 
 impl Clipboard {
-    pub fn new(display: &Display) -> Self {
-        #[cfg(any(target_os = "linux", target_os = "bsd"))]
-        {
-            if let Some(display) = display.get_wayland_display() {
-                return Self {
-                    primary: unsafe {
-                        Box::new(WaylandClipboardContext::new_from_external(display))
-                    },
-                    secondary: None,
-                };
-            }
+    pub fn new(display: Option<*mut c_void>) -> Self {
+        if let Some(display) = display {
+            return Self {
+                primary: unsafe { Box::new(WaylandClipboardContext::new_from_external(display)) },
+                secondary: None,
+            };
         }
 
         Self {
@@ -71,7 +66,7 @@ impl Clipboard {
     pub fn load(&mut self, ty: ClipboardType) -> Result<String, Box<std::error::Error>> {
         let clipboard = match (ty, &mut self.secondary) {
             (ClipboardType::Secondary, Some(provider)) => provider,
-            _ => &mut self.primary
+            _ => &mut self.primary,
         };
 
         clipboard.get_contents()
