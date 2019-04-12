@@ -19,6 +19,8 @@ use crate::gl;
 use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 #[cfg(not(any(target_os = "macos", windows)))]
 use glutin::os::unix::{EventsLoopExt, WindowExt};
+#[cfg(target_os = "macos")]
+use glutin::os::macos::WindowExt;
 #[cfg(windows)]
 use glutin::Icon;
 use glutin::{
@@ -333,13 +335,11 @@ impl Window {
         target_os = "openbsd"
     ))]
     pub fn set_urgent(&self, is_urgent: bool) {
-        use glutin::os::unix::WindowExt;
         self.window().set_urgent(is_urgent);
     }
 
     #[cfg(target_os = "macos")]
     pub fn set_urgent(&self, is_urgent: bool) {
-        use glutin::os::macos::WindowExt;
         self.window().request_user_attention(is_urgent);
     }
 
@@ -352,8 +352,6 @@ impl Window {
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     pub fn get_window_id(&self) -> Option<usize> {
-        use glutin::os::unix::WindowExt;
-
         match self.window().get_xlib_window() {
             Some(xlib_window) => Some(xlib_window as usize),
             None => None,
@@ -399,7 +397,6 @@ impl OsExtensions for Window {}
 ))]
 impl OsExtensions for Window {
     fn run_os_extensions(&self) {
-        use glutin::os::unix::WindowExt;
         use libc::getpid;
         use std::ffi::CStr;
         use std::ptr;
