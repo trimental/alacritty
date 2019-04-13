@@ -14,15 +14,12 @@
 
 use std::ffi::c_void;
 
-#[cfg(test)]
 use clipboard::nop_clipboard::NopClipboardContext;
 #[cfg(any(target_os = "linux", target_os = "bsd"))]
 use clipboard::wayland_clipboard::WaylandClipboardContext;
-#[cfg(all(any(target_os = "linux", target_os = "bsd"), not(test)))]
+#[cfg(any(target_os = "linux", target_os = "bsd"))]
 use clipboard::x11_clipboard::{Primary as X11SecondaryClipboard, X11ClipboardContext};
-#[cfg(not(test))]
-use clipboard::ClipboardContext;
-use clipboard::ClipboardProvider;
+use clipboard::{ClipboardContext, ClipboardProvider};
 
 pub struct Clipboard {
     primary: Box<ClipboardProvider>,
@@ -39,13 +36,18 @@ impl Clipboard {
         }
 
         Self {
-            #[cfg(test)]
-            primary: Box::new(NopClipboardContext::new().unwrap()),
-            #[cfg(not(test))]
             primary: Box::new(ClipboardContext::new().unwrap()),
-            #[cfg(all(any(target_os = "linux", target_os = "bsd"), not(test)))]
+            #[cfg(any(target_os = "linux", target_os = "bsd"))]
             secondary: Some(Box::new(X11ClipboardContext::<X11SecondaryClipboard>::new().unwrap())),
-            #[cfg(any(not(any(target_os = "linux", target_os = "bsd")), test))]
+            #[cfg(not(any(target_os = "linux", target_os = "bsd")))]
+            secondary: None,
+        }
+    }
+
+    // Use for tests and ref-tests
+    pub fn new_nop() -> Self {
+        Self {
+            primary: Box::new(NopClipboardContext::new().unwrap()),
             secondary: None,
         }
     }
