@@ -1075,7 +1075,7 @@ mod tests {
                     dpr: 1.0,
                 };
 
-                let mut terminal = Term::new(&config, size, MessageBuffer::new(), Clipboard::new(None));
+                let mut terminal = Term::new(&config, size, MessageBuffer::new(), Clipboard::new_nop());
 
                 let mut mouse = Mouse::default();
                 mouse.click_state = $initial_state;
