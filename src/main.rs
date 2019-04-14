@@ -139,7 +139,10 @@ fn run(
     info!("PTY Dimensions: {:?} x {:?}", display.size().lines(), display.size().cols());
 
     // Create new native clipboard
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     let clipboard = Clipboard::new(display.get_wayland_display());
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    let clipboard = Clipboard::new();
 
     // Create the terminal
     //

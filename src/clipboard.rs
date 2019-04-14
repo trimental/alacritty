@@ -15,9 +15,9 @@
 use std::ffi::c_void;
 
 use clipboard::nop_clipboard::NopClipboardContext;
-#[cfg(any(target_os = "linux", target_os = "bsd"))]
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 use clipboard::wayland_clipboard::WaylandClipboardContext;
-#[cfg(any(target_os = "linux", target_os = "bsd"))]
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 use clipboard::x11_clipboard::{Primary as X11SecondaryClipboard, X11ClipboardContext};
 use clipboard::{ClipboardContext, ClipboardProvider};
 
@@ -27,6 +27,15 @@ pub struct Clipboard {
 }
 
 impl Clipboard {
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    pub fn new() -> Self {
+        Self {
+            primary: Box::new(ClipboardContext::new().unwrap()),
+            secondary: None,
+        }
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     pub fn new(display: Option<*mut c_void>) -> Self {
         if let Some(display) = display {
             return Self {
@@ -37,10 +46,7 @@ impl Clipboard {
 
         Self {
             primary: Box::new(ClipboardContext::new().unwrap()),
-            #[cfg(any(target_os = "linux", target_os = "bsd"))]
             secondary: Some(Box::new(X11ClipboardContext::<X11SecondaryClipboard>::new().unwrap())),
-            #[cfg(not(any(target_os = "linux", target_os = "bsd")))]
-            secondary: None,
         }
     }
 

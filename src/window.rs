@@ -368,6 +368,7 @@ impl Window {
         self.window().hide();
     }
 
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     pub fn get_wayland_display(&self) -> Option<*mut c_void> {
         self.window().get_wayland_display()
     }
