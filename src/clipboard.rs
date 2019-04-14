@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 use std::ffi::c_void;
 
 use clipboard::nop_clipboard::NopClipboardContext;
@@ -29,10 +30,7 @@ pub struct Clipboard {
 impl Clipboard {
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     pub fn new() -> Self {
-        Self {
-            primary: Box::new(ClipboardContext::new().unwrap()),
-            secondary: None,
-        }
+        Self::default()
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -54,6 +52,15 @@ impl Clipboard {
     pub fn new_nop() -> Self {
         Self {
             primary: Box::new(NopClipboardContext::new().unwrap()),
+            secondary: None,
+        }
+    }
+}
+
+impl Default for Clipboard {
+    fn default() -> Self {
+        Self {
+            primary: Box::new(ClipboardContext::new().unwrap()),
             secondary: None,
         }
     }
