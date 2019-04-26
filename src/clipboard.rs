@@ -21,6 +21,8 @@ use clipboard::wayland_clipboard::WaylandClipboardContext;
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 use clipboard::x11_clipboard::{Primary as X11SecondaryClipboard, X11ClipboardContext};
 use clipboard::{ClipboardContext, ClipboardProvider};
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+use wayland_client::{Display, GlobalManager, sys::client::wl_display};
 
 pub struct Clipboard {
     primary: Box<ClipboardProvider>,
@@ -34,10 +36,15 @@ impl Clipboard {
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    pub fn new(display: Option<*mut c_void>) -> Self {
-        if let Some(display) = display {
+    pub fn new(display_ptr: Option<*mut c_void>) -> Self {
+        if let Some(display_ptr) = display_ptr {
+            let (display, mut event_queue) = unsafe { Display::from_external_display((display_ptr as *mut wl_display ).as_mut().unwrap()) };
+            let manager = GlobalManager::new(&display);
+            event_queue.sync_roundtrip().unwrap();
+            let primary = unsafe { Box::new(WaylandClipboardContext::new_from_external(display_ptr, &manager)) };
+            event_queue.sync_roundtrip().unwrap();
             return Self {
-                primary: unsafe { Box::new(WaylandClipboardContext::new_from_external(display)) },
+                primary,
                 secondary: None,
             };
         }
